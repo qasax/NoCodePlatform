@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: NoCodePlatform
+server:
+  port: 8790
+  servlet:
+    context-path: /api
+springdoc:
+  group-configs:
+    - group: 'default'
+      packages-to-scan: my.nocodeplatform.controller
+kinfe4j:
+  enable: true
+  setting:
+    language: zh_cn
