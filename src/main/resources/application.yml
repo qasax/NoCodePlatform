@@ -1,6 +1,8 @@
 spring:
   application:
     name: NoCodePlatform
+  profiles:
+    active: local
 server:
   port: 8790
   servlet:
