@@ -10,17 +10,23 @@ langchain4j:
     dashscope:
       chat-model:
         api-key: sk-355fdaeddf5743078b7d4c9efde61980
-        model-name: qwen-max
-        parameters:
-          response-format: json
+        model-name: qwen3-max
       embedding-model:
         api-key: sk-355fdaeddf5743078b7d4c9efde61980
         model-name: text-embedding-v4
       streaming-chat-model:
         api-key: sk-355fdaeddf5743078b7d4c9efde61980
-        model-name: qwen-max
+        model-name: qwen3-max
+      streaming-language-model:
+        api-key: sk-355fdaeddf5743078b7d4c9efde61980
+        model-name: qwen3.5-plus
+      image-model:
+        api-key: sk-355fdaeddf5743078b7d4c9efde61980
+        model-name: qwen-image-2.0-pro
     redis:
       host: localhost
       ttl: 3600
       port: 6379
       password:
+pexels:
+  api-key: vz44hcIuOnoHxX8JJyUoVW9a7HHHsv5EICXudH2UMZKvrl7RbDox28M5

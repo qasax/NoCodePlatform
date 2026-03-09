@@ -10,9 +10,13 @@ public interface AppConstant {
      * 应用部署目录
      */
     String CODE_DEPLOY_ROOT_DIR = System.getProperty("user.dir") + "/tmp/code_deploy";
+    /**
+     * 图片生成目录
+     */
+    String PIC_ROOT_DIR = System.getProperty("user.dir") + "/tmp/screenshots";
 
     /**
      * 应用部署域名
      */
-    String CODE_DEPLOY_HOST = "http://localhost";
+    String CODE_DEPLOY_HOST = "http://localhost:8001";
 }

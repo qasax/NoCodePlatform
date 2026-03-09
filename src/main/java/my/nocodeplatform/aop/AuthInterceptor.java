@@ -1,4 +1,4 @@
-package annotation;
+package my.nocodeplatform.aop;
 
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,7 +30,7 @@ public class AuthInterceptor {
      * @param authCheck 权限校验注解
      */
     @Around("@annotation(authCheck)")
-    public Object doInterceptor(ProceedingJoinPoint joinPoint, AuthCheck authCheck) throws Throwable {
+    public Object doInterceptor(ProceedingJoinPoint joinPoint, annotation.AuthCheck authCheck) throws Throwable {
         String mustRole = authCheck.mustRole();
         RequestAttributes requestAttributes = RequestContextHolder.currentRequestAttributes();
         HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();

@@ -3,6 +3,7 @@ package my.nocodeplatform.ai;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.langchain4j.community.model.dashscope.QwenStreamingChatModel;
+import dev.langchain4j.community.model.dashscope.QwenStreamingLanguageModel;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -11,7 +12,7 @@ import dev.langchain4j.service.AiServices;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import my.nocodeplatform.ai.model.enums.CodeGenTypeEnum;
-import my.nocodeplatform.ai.tool.FileWriteTool;
+import my.nocodeplatform.ai.tool.*;
 import my.nocodeplatform.exception.BusinessException;
 import my.nocodeplatform.exception.ErrorCode;
 import my.nocodeplatform.service.ChatHistoryService;
@@ -20,8 +21,6 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
 
-import static my.nocodeplatform.ai.model.enums.CodeGenTypeEnum.MULTI_FILE;
-import static my.nocodeplatform.ai.model.enums.CodeGenTypeEnum.VUE_PROJECT;
 
 @Configuration
 @Slf4j
@@ -33,6 +32,8 @@ public class AiCodeGeneratorServiceFactory {
     private ChatModel myQwenChatModel;
     @Resource
     private QwenStreamingChatModel myQwenStreamingChatModel;
+    @Resource
+    private QwenStreamingLanguageModel myQwenStreamingLanguageModel ;
 
     @Resource
     private RedisChatMemoryStore redisChatMemoryStore;
@@ -81,6 +82,8 @@ public class AiCodeGeneratorServiceFactory {
     }
 
 
+    @Resource
+    private ToolManager toolManager;
 
     /**
      * 创建新的 AI 服务实例
@@ -101,7 +104,7 @@ public class AiCodeGeneratorServiceFactory {
             case VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
                     .streamingChatModel(myQwenStreamingChatModel)
                     .chatMemoryProvider(memoryId -> chatMemory)
-                    .tools(new FileWriteTool())
+                    .tools(toolManager.getAllTools())
                     .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                             toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()
                     ))

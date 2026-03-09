@@ -30,6 +30,32 @@ public class StaticResourceController {
 
     // 应用生成根目录（用于浏览）
     private static final String PREVIEW_ROOT_DIR = AppConstant.CODE_OUTPUT_ROOT_DIR;
+    private static final String PIC_ROOT_DIR = AppConstant.PIC_ROOT_DIR;
+
+    @Operation(summary = "访问图片资源", description = "根据文件名提供静态图片资源的访问（如应用封面）")
+    @GetMapping("/pic/**")
+    public ResponseEntity<Resource> servePicResource(HttpServletRequest request) {
+        try {
+            // 获取资源路径
+            String resourcePath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+            resourcePath = resourcePath.substring("/static/pic/".length());
+            
+            // 构建文件路径
+            String filePath = PIC_ROOT_DIR + File.separator + resourcePath;
+            File file = new File(filePath);
+            // 检查文件是否存在
+            if (!file.exists() || file.isDirectory()) {
+                return ResponseEntity.notFound().build();
+            }
+            // 返回文件资源
+            Resource resource = new FileSystemResource(file);
+            return ResponseEntity.ok()
+                    .header("Content-Type", getContentTypeWithCharset(filePath))
+                    .body(resource);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 
     @Operation(summary = "访问静态资源", description = "根据 deployKey 和文件路径提供静态资源访问，支持目录重定向（自动跳转到 index.html）")
     @GetMapping("/{deployKey}/**")
@@ -38,6 +64,11 @@ public class StaticResourceController {
             @PathVariable String deployKey,
             HttpServletRequest request) {
         try {
+            // 如果请求是 /static/pic/**，不在这里处理
+            if ("pic".equals(deployKey)) {
+                return servePicResource(request);
+            }
+            
             // 获取资源路径
             String resourcePath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
             resourcePath = resourcePath.substring(("/static/" + deployKey).length());
@@ -76,7 +107,9 @@ public class StaticResourceController {
         if (filePath.endsWith(".css")) return "text/css; charset=UTF-8";
         if (filePath.endsWith(".js")) return "application/javascript; charset=UTF-8";
         if (filePath.endsWith(".png")) return "image/png";
-        if (filePath.endsWith(".jpg")) return "image/jpeg";
+        if (filePath.endsWith(".jpg") || filePath.endsWith(".jpeg")) return "image/jpeg";
+        if (filePath.endsWith(".gif")) return "image/gif";
+        if (filePath.endsWith(".svg")) return "image/svg+xml; charset=UTF-8";
         return "application/octet-stream";
     }
 }
