@@ -1,8 +1,8 @@
-package my.nocodeplatform.ai;
+package my.nocodeplatform.ai.service;
 
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
-import my.nocodeplatform.langgraph4j.mocel.QualityResult;
+import my.nocodeplatform.langgraph4j.model.QualityResult;
 
 public interface CodeQualityCheckService {
 

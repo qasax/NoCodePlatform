@@ -1,4 +1,4 @@
-package my.nocodeplatform.ai;
+package my.nocodeplatform.ai.service;
 
 import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;

@@ -5,6 +5,8 @@ import cn.hutool.core.util.StrUtil;
 import lombok.extern.slf4j.Slf4j;
 import my.nocodeplatform.langgraph4j.state.ImageResource;
 import my.nocodeplatform.langgraph4j.state.WorkflowContext;
+import my.nocodeplatform.model.enums.WorkflowStageEnum;
+import my.nocodeplatform.progress.WorkflowProgressBroadcaster;
 import org.bsc.langgraph4j.action.AsyncNodeAction;
 import org.bsc.langgraph4j.prebuilt.MessagesState;
 
@@ -17,11 +19,17 @@ public class PromptEnhancerNode {
     public static AsyncNodeAction<MessagesState<String>> create() {
         return node_async(state -> {
             WorkflowContext context = WorkflowContext.getContext(state);
-            log.info("执行节点: 提示词增强");
+            log.info("执行节点：提示词增强");
+            
             // 获取原始提示词和图片列表
             String originalPrompt = context.getOriginalPrompt();
             String imageListStr = context.getImageListStr();
             List<ImageResource> imageList = context.getImageList();
+            
+            // 发送阶段开始消息
+            WorkflowProgressBroadcaster broadcaster = SpringContextUtil.getBean(WorkflowProgressBroadcaster.class);
+            broadcaster.sendStageStart(context.getAppId(), WorkflowStageEnum.PROMPT_ENHANCEMENT, WorkflowStageEnum.IMAGE_COLLECTION.getWeight());
+            
             // 构建增强后的提示词
             StringBuilder enhancedPromptBuilder = new StringBuilder();
             enhancedPromptBuilder.append(originalPrompt);
@@ -44,10 +52,20 @@ public class PromptEnhancerNode {
                 }
             }
             String enhancedPrompt = enhancedPromptBuilder.toString();
+            
+            // 发送阶段完成消息
+            broadcaster.sendStageComplete(
+                context.getAppId(),
+                WorkflowStageEnum.PROMPT_ENHANCEMENT,
+                WorkflowStageEnum.PROMPT_ENHANCEMENT.getWeight(),
+                "提示词增强完成，共 " + enhancedPrompt.length() + " 字符",
+                "{\"originalLength\":" + originalPrompt.length() + ",\"enhancedLength\":" + enhancedPrompt.length() + "}"
+            );
+            
             // 更新状态
             context.setCurrentStep("提示词增强");
             context.setEnhancedPrompt(enhancedPrompt);
-            log.info("提示词增强完成，增强后长度: {} 字符", enhancedPrompt.length());
+            log.info("提示词增强完成，增强后长度：{} 字符", enhancedPrompt.length());
             return WorkflowContext.saveContext(context);
         });
     }

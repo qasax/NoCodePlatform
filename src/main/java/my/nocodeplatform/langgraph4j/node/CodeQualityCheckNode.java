@@ -3,9 +3,12 @@ package my.nocodeplatform.langgraph4j.node;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
 import lombok.extern.slf4j.Slf4j;
-import my.nocodeplatform.ai.CodeQualityCheckService;
-import my.nocodeplatform.langgraph4j.mocel.QualityResult;
+import my.nocodeplatform.ai.service.CodeQualityCheckService;
+import my.nocodeplatform.ai.service.CodeQualityCheckServiceFactory;
+import my.nocodeplatform.langgraph4j.model.QualityResult;
 import my.nocodeplatform.langgraph4j.state.WorkflowContext;
+import my.nocodeplatform.model.enums.WorkflowStageEnum;
+import my.nocodeplatform.progress.WorkflowProgressBroadcaster;
 import org.bsc.langgraph4j.action.AsyncNodeAction;
 import org.bsc.langgraph4j.prebuilt.MessagesState;
 
@@ -24,7 +27,12 @@ public class CodeQualityCheckNode {
     public static AsyncNodeAction<MessagesState<String>> create() {
         return node_async(state -> {
             WorkflowContext context = WorkflowContext.getContext(state);
-            log.info("执行节点: 代码质量检查");
+            log.info("执行节点：代码质量检查");
+            
+            // 获取进度广播器并发送阶段开始消息
+            WorkflowProgressBroadcaster broadcaster = SpringContextUtil.getBean(WorkflowProgressBroadcaster.class);
+            broadcaster.sendStageStart(context.getAppId(), WorkflowStageEnum.QUALITY_CHECK, WorkflowStageEnum.CODE_GENERATION.getWeight());
+            
             String generatedCodeDir = context.getGeneratedCodeDir();
             QualityResult qualityResult;
             try {
@@ -39,8 +47,9 @@ public class CodeQualityCheckNode {
                             .build();
                 } else {
                     // 2. 调用 AI 进行代码质量检查
-                    CodeQualityCheckService qualityCheckService = SpringContextUtil.getBean(CodeQualityCheckService.class);
-                    qualityResult = qualityCheckService.checkCodeQuality(codeContent);
+                    CodeQualityCheckServiceFactory codeQualityCheckServiceFactory = SpringContextUtil.getBean(CodeQualityCheckServiceFactory.class);
+                    CodeQualityCheckService codeQualityCheckService = codeQualityCheckServiceFactory.getCodeQualityCheckService();
+                    qualityResult = codeQualityCheckService.checkCodeQuality(codeContent);
                     log.info("代码质量检查完成 - 是否通过: {}", qualityResult.getIsValid());
                 }
             } catch (Exception e) {
@@ -49,6 +58,17 @@ public class CodeQualityCheckNode {
                         .isValid(true) // 异常直接跳到下一个步骤
                         .build();
             }
+            // 发送阶段完成消息
+            int passedChecks = qualityResult.getIsValid() ? 15 : 14;
+            int totalChecks = 15;
+            broadcaster.sendStageComplete(
+                context.getAppId(),
+                WorkflowStageEnum.QUALITY_CHECK,
+                WorkflowStageEnum.QUALITY_CHECK.getWeight(),
+                "代码质量检查完成，通过 " + passedChecks + "/" + totalChecks + " 项检查",
+                "{\"passedChecks\":" + passedChecks + ",\"totalChecks\":" + totalChecks + ",\"isValid\":" + qualityResult.getIsValid() + "}"
+            );
+            
             // 3. 更新状态
             context.setCurrentStep("代码质量检查");
             context.setQualityResult(qualityResult);

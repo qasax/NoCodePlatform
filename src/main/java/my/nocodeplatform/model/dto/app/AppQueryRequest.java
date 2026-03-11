@@ -24,5 +24,7 @@ public class AppQueryRequest extends PageRequest implements Serializable {
     @Schema(description = "创建用户 ID（精确匹配）", example = "1")
     private Long userId;
 
+    @Schema(description = "优先级", example = "99")
+    private int priority;
     private static final long serialVersionUID = 1L;
 }

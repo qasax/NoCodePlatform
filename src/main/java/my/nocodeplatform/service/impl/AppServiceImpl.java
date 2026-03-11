@@ -10,10 +10,13 @@ import com.mybatisflex.spring.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import my.nocodeplatform.ai.model.core.AiCodeGeneratorFacade;
+import my.nocodeplatform.ai.service.AiCodeGenTypeRoutingService;
+import my.nocodeplatform.ai.service.AiCodeGenTypeRoutingServiceFactory;
+import my.nocodeplatform.ai.service.AiCodeGeneratorFacade;
 import my.nocodeplatform.ai.model.core.builder.VueProjectBuilder;
 import my.nocodeplatform.ai.model.enums.CodeGenTypeEnum;
 import my.nocodeplatform.ai.utils.WebScreenshotUtils;
+import my.nocodeplatform.langgraph4j.workflow.CodeGenConcurrentWorkflow;
 import my.nocodeplatform.constant.AppConstant;
 import my.nocodeplatform.entity.App;
 import my.nocodeplatform.entity.User;
@@ -53,6 +56,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private my.nocodeplatform.service.ChatHistoryService chatHistoryService;
     @Resource
     private VueProjectBuilder vueProjectBuilder;
+    @Resource
+    private AiCodeGenTypeRoutingServiceFactory  aiCodeGenTypeRoutingServiceFactory;
 
     @Override
     public QueryWrapper getQueryWrapper(AppQueryRequest appQueryRequest) {
@@ -152,7 +157,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         userMessage.setMessageType(my.nocodeplatform.model.enums.ChatHistoryMessageTypeEnum.USER.getValue());
         userMessage.setMessage(message);
         chatHistoryService.save(userMessage);
+        // 使用 AI 智能选择代码生成类型
+        AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService = aiCodeGenTypeRoutingServiceFactory.getAiCodeGenTypeRoutingService();
 
+        CodeGenTypeEnum selectedCodeGenType = aiCodeGenTypeRoutingService.routeCodeGenType(app.getInitPrompt());
+        app.setCodeGenType(selectedCodeGenType.getValue());
+        this.updateById(app);
         // 6. 调用 AI 生成代码，并监控返回流进行数据记录
         StringBuilder aiMessageBuilder = new StringBuilder();
         return aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId)
@@ -287,5 +297,48 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                 throw new RuntimeException(e);
             }
         });
+    }
+
+    @Override
+    public Flux<String> chatToGenCodeWithAgent(Long appId, String message, User loginUser) {
+        // 1. 参数校验
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
+        ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "用户消息不能为空");
+        // 2. 查询应用信息
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        // 3. 验证权限
+        if (!app.getUserId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问该应用");
+        }
+        // 4. 记录用户消息
+        my.nocodeplatform.entity.ChatHistory userMessage = new my.nocodeplatform.entity.ChatHistory();
+        userMessage.setAppId(appId);
+        userMessage.setUserId(loginUser.getId());
+        userMessage.setMessageType(my.nocodeplatform.model.enums.ChatHistoryMessageTypeEnum.USER.getValue());
+        userMessage.setMessage(message);
+        chatHistoryService.save(userMessage);
+
+        // 5. 执行工作流
+        CodeGenConcurrentWorkflow workflow = new CodeGenConcurrentWorkflow();
+        StringBuilder aiMessageBuilder = new StringBuilder();
+        return workflow.executeWorkflowWithFlux(appId, message)
+                .doOnNext(chunk -> aiMessageBuilder.append(chunk).append("\n"))
+                .doOnComplete(() -> {
+                    my.nocodeplatform.entity.ChatHistory aiMessage = new my.nocodeplatform.entity.ChatHistory();
+                    aiMessage.setAppId(appId);
+                    aiMessage.setUserId(loginUser.getId());
+                    aiMessage.setMessageType(my.nocodeplatform.model.enums.ChatHistoryMessageTypeEnum.AI.getValue());
+                    aiMessage.setMessage(aiMessageBuilder.toString());
+                    chatHistoryService.save(aiMessage);
+                })
+                .doOnError(e -> {
+                    my.nocodeplatform.entity.ChatHistory errorMessage = new my.nocodeplatform.entity.ChatHistory();
+                    errorMessage.setAppId(appId);
+                    errorMessage.setUserId(loginUser.getId());
+                    errorMessage.setMessageType(my.nocodeplatform.model.enums.ChatHistoryMessageTypeEnum.ERROR.getValue());
+                    errorMessage.setMessage(e.getMessage());
+                    chatHistoryService.save(errorMessage);
+                });
     }
 }

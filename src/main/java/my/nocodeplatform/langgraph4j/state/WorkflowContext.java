@@ -5,7 +5,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import my.nocodeplatform.ai.model.enums.CodeGenTypeEnum;
-import my.nocodeplatform.langgraph4j.mocel.QualityResult;
+import my.nocodeplatform.langgraph4j.model.BuildResult;
+import my.nocodeplatform.langgraph4j.model.ImageCollectionPlan;
+import my.nocodeplatform.langgraph4j.model.QualityResult;
 import org.bsc.langgraph4j.prebuilt.MessagesState;
 
 import java.io.Serial;
@@ -68,6 +70,11 @@ public class WorkflowContext implements Serializable {
     private String buildResultDir;
 
     /**
+     * 应用 ID
+     */
+    private Long appId;
+
+    /**
      * 错误信息
      */
     private String errorMessage;
@@ -75,6 +82,24 @@ public class WorkflowContext implements Serializable {
      * 质量检查结果
      */
     private QualityResult qualityResult;
+    /**
+     * 构建结果
+     */
+    private BuildResult buildResult;
+
+    /**
+     * 图片收集计划
+     */
+    private ImageCollectionPlan imageCollectionPlan;
+
+
+    /**
+     * 并发图片收集的中间结果字段
+     */
+    private List<ImageResource> contentImages;
+    private List<ImageResource> illustrations;
+    private List<ImageResource> diagrams;
+    private List<ImageResource> logos;
 
     @Serial
     private static final long serialVersionUID = 1L;

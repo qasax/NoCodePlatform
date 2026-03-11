@@ -1,20 +1,22 @@
-package my.nocodeplatform.ai;
+package my.nocodeplatform.ai.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import dev.langchain4j.community.model.dashscope.QwenChatModel;
 import dev.langchain4j.community.model.dashscope.QwenStreamingChatModel;
-import dev.langchain4j.community.model.dashscope.QwenStreamingLanguageModel;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
-import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import my.nocodeplatform.ai.guardrail.PromptSafetyInputGuardrail;
+import my.nocodeplatform.ai.guardrail.RetryOutputGuardrail;
 import my.nocodeplatform.ai.model.enums.CodeGenTypeEnum;
 import my.nocodeplatform.ai.tool.*;
 import my.nocodeplatform.exception.BusinessException;
 import my.nocodeplatform.exception.ErrorCode;
+import my.nocodeplatform.langgraph4j.node.SpringContextUtil;
 import my.nocodeplatform.service.ChatHistoryService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,14 +28,6 @@ import java.time.Duration;
 @Slf4j
 public class AiCodeGeneratorServiceFactory {
 
-    @Resource
-    private ChatModel qwenChatModel;
-    @Resource
-    private ChatModel myQwenChatModel;
-    @Resource
-    private QwenStreamingChatModel myQwenStreamingChatModel;
-    @Resource
-    private QwenStreamingLanguageModel myQwenStreamingLanguageModel ;
 
     @Resource
     private RedisChatMemoryStore redisChatMemoryStore;
@@ -89,6 +83,12 @@ public class AiCodeGeneratorServiceFactory {
      * 创建新的 AI 服务实例
      */
     private AiCodeGeneratorService createAiCodeGeneratorService(long appId, CodeGenTypeEnum codeGenType) {
+        //获取prototype Bean
+        QwenStreamingChatModel myQwenStreamingChatModel = (QwenStreamingChatModel) SpringContextUtil.getBean("myQwenStreamingChatModel");
+        QwenStreamingChatModel multiQwenStreamingChatModel = (QwenStreamingChatModel) SpringContextUtil.getBean("multiQwenStreamingChatModel");
+        QwenChatModel myQwenChatModel = (QwenChatModel) SpringContextUtil.getBean("JsonQwenChatModel");
+
+
         // 根据 appId 构建独立的对话记忆
         MessageWindowChatMemory chatMemory = MessageWindowChatMemory
                 .builder()
@@ -105,15 +105,20 @@ public class AiCodeGeneratorServiceFactory {
                     .streamingChatModel(myQwenStreamingChatModel)
                     .chatMemoryProvider(memoryId -> chatMemory)
                     .tools(toolManager.getAllTools())
+//                    .maxSequentialToolsInvocations(10)
                     .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                             toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()
                     ))
+                  //  .inputGuardrails(new PromptSafetyInputGuardrail())  // 添加输入护轨
+                 //   .outputGuardrails(new RetryOutputGuardrail())
                     .build();
             // HTML 和多文件生成使用默认模型
             case HTML, MULTI_FILE -> AiServices.builder(AiCodeGeneratorService.class)
                     .chatModel(myQwenChatModel)
-                    .streamingChatModel(myQwenStreamingChatModel)
+                    .streamingChatModel(multiQwenStreamingChatModel)
                     .chatMemory(chatMemory)
+                   // .inputGuardrails(new PromptSafetyInputGuardrail())  // 添加输入护轨
+                  //  .outputGuardrails(new RetryOutputGuardrail())
                     .build();
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR,
                     "不支持的代码生成类型: " + codeGenType.getValue());

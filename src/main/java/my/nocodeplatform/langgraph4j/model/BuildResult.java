@@ -1,4 +1,4 @@
-package my.nocodeplatform.langgraph4j.mocel;
+package my.nocodeplatform.langgraph4j.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -8,13 +8,11 @@ import lombok.NoArgsConstructor;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class QualityResult implements Serializable {
-
+public class BuildResult implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 

@@ -10,13 +10,9 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
-import my.nocodeplatform.ai.AiCodeGenTypeRoutingService;
-import my.nocodeplatform.ai.model.enums.CodeGenTypeEnum;
-import my.nocodeplatform.ai.utils.WebScreenshotUtils;
 import my.nocodeplatform.common.BaseResponse;
 import my.nocodeplatform.common.DeleteRequest;
 import my.nocodeplatform.common.ResultUtils;
-import my.nocodeplatform.constant.AppConstant;
 import my.nocodeplatform.constant.UserConstant;
 import my.nocodeplatform.entity.App;
 import my.nocodeplatform.entity.User;
@@ -54,8 +50,7 @@ public class AppController {
 
     @Resource
     private ChatHistoryService chatHistoryService;
-    @Resource
-    private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
+
 
     // region 增删改查
 
@@ -73,11 +68,9 @@ public class AppController {
         User loginUser = userService.getLoginUser(request);
         app.setUserId(loginUser.getId());
         app.setPriority(0); // 默认非精选
+        app.setCodeGenType(null);
         // 应用名称暂时为 initPrompt 前 12 位
         app.setAppName(app.getInitPrompt().substring(0, Math.min(app.getInitPrompt().length(), 12)));
-        // 使用 AI 智能选择代码生成类型
-        CodeGenTypeEnum selectedCodeGenType = aiCodeGenTypeRoutingService.routeCodeGenType(app.getInitPrompt());
-        app.setCodeGenType(selectedCodeGenType.getValue());
         boolean result = appService.save(app);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(app.getId());
@@ -188,9 +181,10 @@ public class AppController {
                                                      HttpServletRequest request) {
         long current = appQueryRequest.getPageNum();
         long size = appQueryRequest.getPageSize();
+        appQueryRequest.setPriority(99);
         // 限制最多20条
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
-        Page<App> appPage = appService.page(Page.of(current, size), appService.getQueryWrapper(appQueryRequest));
+        Page<App> appPage = appService.page(Page.of(current, size), appService.getQueryWrapper(appQueryRequest).eq("priority", appQueryRequest.getPriority()));
         return ResultUtils.success(appService.getAppVOPage(appPage, request));
     }
 
@@ -219,14 +213,24 @@ public class AppController {
     @GetMapping(value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId,
                                                        @RequestParam String message,
+                                                       @RequestParam(required = false, defaultValue = "false") Boolean agent,
+                                                       @RequestParam(required = false, defaultValue = "false") String selectedElement,
                                                        HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
         ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "用户消息不能为空");
         // 获取当前登录用户
         User loginUser = userService.getLoginUser(request);
+        if(selectedElement!=null && !selectedElement.equals("false")){
+            message+=selectedElement;
+        }
         // 调用服务生成代码（流式）
-        Flux<String> contentFlux = appService.chatToGenCode(appId, message, loginUser);
+        Flux<String> contentFlux;
+        if (Boolean.TRUE.equals(agent)) {
+            contentFlux = appService.chatToGenCodeWithAgent(appId, message, loginUser);
+        } else {
+            contentFlux = appService.chatToGenCode(appId, message, loginUser);
+        }
         // 转换为 ServerSentEvent 格式
         return contentFlux
                 .map(chunk -> {

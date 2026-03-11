@@ -1,24 +1,24 @@
-package my.nocodeplatform.ai;
+package my.nocodeplatform.ai.service;
 
-import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.community.model.dashscope.QwenChatModel;
 import dev.langchain4j.service.AiServices;
-import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Bean;
+import my.nocodeplatform.langgraph4j.node.SpringContextUtil;
 import org.springframework.context.annotation.Configuration;
 
 @Slf4j
 @Configuration
 public class CodeQualityCheckServiceFactory {
 
-    @Resource
-    private ChatModel myQwenChatModel;
 
     /**
      * 创建代码质量检查 AI 服务
      */
-    @Bean
-    public CodeQualityCheckService createCodeQualityCheckService() {
+
+    public CodeQualityCheckService getCodeQualityCheckService() {
+        //获取prototype Bean
+        QwenChatModel myQwenChatModel = (QwenChatModel) SpringContextUtil.getBean("JsonQwenChatModel");
+
         return AiServices.builder(CodeQualityCheckService.class)
                 .chatModel(myQwenChatModel)
                 .build();

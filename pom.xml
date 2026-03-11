@@ -1,61 +1,72 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.5.11</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <relativePath/>
     </parent>
+
     <groupId>my</groupId>
     <artifactId>NoCodePlatform</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>NoCodePlatform</name>
     <description>NoCodePlatform</description>
-    <url/>
-    <licenses>
-        <license/>
-    </licenses>
-    <developers>
-        <developer/>
-    </developers>
-    <scm>
-        <connection/>
-        <developerConnection/>
-        <tag/>
-        <url/>
-    </scm>
+
     <properties>
         <java.version>21</java.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-bom</artifactId>
+                <version>1.11.0-beta19</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
+        <!-- Spring Boot Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-devtools</artifactId>
-            <scope>runtime</scope>
-            <optional>true</optional>
+            <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
+
+        <!-- MySQL -->
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
         </dependency>
+
+        <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
+
+        <!-- 测试 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- 工具 -->
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
@@ -66,52 +77,30 @@
             <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
             <version>4.5.0</version>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-aop</artifactId>
-        </dependency>
+
+        <!-- MyBatis-Flex -->
         <dependency>
             <groupId>com.mybatis-flex</groupId>
             <artifactId>mybatis-flex-spring-boot3-starter</artifactId>
             <version>1.11.0</version>
         </dependency>
-        <!-- 代码生成模块 -->
         <dependency>
             <groupId>com.mybatis-flex</groupId>
             <artifactId>mybatis-flex-codegen</artifactId>
             <version>1.11.0</version>
         </dependency>
-        <!-- 数据库连接池 -->
+
+        <!-- 数据库连接池 & 缓存 -->
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j</artifactId>
-            <version>1.9.1</version>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-community-dashscope-spring-boot-starter</artifactId>
-            <version>1.9.1-beta17</version>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-reactor</artifactId>
-            <version>1.1.0-beta7</version>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-community-redis-spring-boot-starter</artifactId>
-            <version>1.1.0-beta7</version>
         </dependency>
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
         </dependency>
 
-        <!-- Selenium 网页截图依赖 -->
+        <!-- Selenium -->
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
             <artifactId>selenium-java</artifactId>
@@ -122,27 +111,69 @@
             <artifactId>webdrivermanager</artifactId>
             <version>6.1.0</version>
         </dependency>
+
+        <!-- Spring Session + Redis -->
+        <dependency>
+            <groupId>org.springframework.session</groupId>
+            <artifactId>spring-session-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>7.2.0</version> <!-- Try 5.2.0, or 7.2.0 if that fails -->
+        </dependency>
+
+        <!-- LangChain4j -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
+            <version>1.12.2</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-reactor</artifactId>
+            <version>1.12.1-beta21</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-community-dashscope</artifactId>
+            <version>1.12.1-beta21</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-community-dashscope-spring-boot-starter</artifactId>
+            <version>1.12.1-beta21</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-community-redis-spring-boot-starter</artifactId>
+            <version>1.12.1-beta21</version>
+        </dependency>
+
         <!-- LangGraph4j -->
         <dependency>
             <groupId>org.bsc.langgraph4j</groupId>
             <artifactId>langgraph4j-core</artifactId>
-            <version>1.6.0-rc2</version>
+            <version>1.8.8</version>
         </dependency>
-        <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>dashscope-sdk-java</artifactId>
-            <version>2.21.1</version>
-        </dependency>
-        <!-- LangGraph4j Studio -->
         <dependency>
             <groupId>org.bsc.langgraph4j</groupId>
             <artifactId>langgraph4j-studio-springboot</artifactId>
-            <version>1.6.0-rc2</version>
+            <version>1.8.8</version>
         </dependency>
+
+        <!-- DashScope SDK -->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>dashscope-sdk-java</artifactId>
+            <version>2.22.11</version>
+        </dependency>
+
     </dependencies>
 
     <build>
         <plugins>
+            <!-- 编译器 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -155,6 +186,8 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
+
+            <!-- Spring Boot 插件 -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
@@ -167,6 +200,8 @@
                     </excludes>
                 </configuration>
             </plugin>
+
+            <!-- 依赖插件 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -180,6 +215,7 @@
                 </executions>
             </plugin>
 
+            <!-- 测试 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -188,7 +224,7 @@
                     <argLine>-javaagent:${org.mockito:mockito-core:jar}</argLine>
                 </configuration>
             </plugin>
+
         </plugins>
     </build>
-
 </project>

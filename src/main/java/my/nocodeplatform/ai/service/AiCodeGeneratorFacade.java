@@ -1,9 +1,7 @@
-package my.nocodeplatform.ai.model.core;
+package my.nocodeplatform.ai.service;
 
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import my.nocodeplatform.ai.AiCodeGeneratorService;
-import my.nocodeplatform.ai.AiCodeGeneratorServiceFactory;
 import my.nocodeplatform.ai.model.HtmlCodeResult;
 import my.nocodeplatform.ai.model.MultiFileCodeResult;
 import my.nocodeplatform.ai.model.core.parser.CodeParserExecutor;
@@ -66,7 +64,7 @@ public class AiCodeGeneratorFacade {
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
         }
-// 根据 appId 获取对应的 AI 服务实例
+        // 根据 appId 获取对应的 AI 服务实例
         AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum);
         return switch (codeGenTypeEnum) {
             case HTML -> {
@@ -114,7 +112,7 @@ public class AiCodeGeneratorFacade {
             } catch (Exception e) {
                 log.error("保存失败: {}", e.getMessage());
             }
-        });
+        })  ;
     }
 
 

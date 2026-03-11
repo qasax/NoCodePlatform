@@ -3,10 +3,16 @@ spring:
     name: NoCodePlatform
   profiles:
     active: local
+  devtools:
+    restart:
+      enabled: false
 server:
   port: 8790
   servlet:
     context-path: /api
+    session:
+      cookie:
+        max-age: 2592000
 springdoc:
   group-configs:
     - group: 'default'
