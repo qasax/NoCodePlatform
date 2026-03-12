@@ -29,7 +29,7 @@ langchain4j:
         model-name: text-embedding-v4
       streaming-chat-model:
         api-key: sk-355fdaeddf5743078b7d4c9efde61980
-        model-name: qwen3-max-preview
+        model-name: qwen3-max-2025-09-23
         parameters:
           response-format: json
           format-on: false
@@ -44,3 +44,9 @@ langchain4j:
       password:
 pexels:
   api-key: vz44hcIuOnoHxX8JJyUoVW9a7HHHsv5EICXudH2UMZKvrl7RbDox28M5
+minio:
+  endpoint: http://localhost:9000
+  access-key: admin
+  secret-key: password123
+  bucket: nocodeplatform
+  public-endpoint: http://localhost:9000

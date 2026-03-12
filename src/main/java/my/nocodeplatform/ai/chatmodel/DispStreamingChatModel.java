@@ -1,5 +1,6 @@
 package my.nocodeplatform.ai.chatmodel;
 
+import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationParam;
 import dev.langchain4j.community.model.dashscope.QwenStreamingChatModel;
 import dev.langchain4j.community.model.dashscope.QwenStreamingLanguageModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;

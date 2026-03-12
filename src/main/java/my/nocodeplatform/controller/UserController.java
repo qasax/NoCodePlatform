@@ -1,32 +1,27 @@
 package my.nocodeplatform.controller;
 
-import annotation.AuthCheck;
 import cn.hutool.core.bean.BeanUtil;
 import com.mybatisflex.core.paginate.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import my.nocodeplatform.annotation.AuthCheck;
 import my.nocodeplatform.common.BaseResponse;
 import my.nocodeplatform.common.DeleteRequest;
 import my.nocodeplatform.common.ResultUtils;
 import my.nocodeplatform.constant.UserConstant;
+import my.nocodeplatform.entity.User;
 import my.nocodeplatform.exception.BusinessException;
 import my.nocodeplatform.exception.ErrorCode;
 import my.nocodeplatform.exception.ThrowUtils;
 import my.nocodeplatform.model.dto.user.*;
 import my.nocodeplatform.model.vo.LoginUserVO;
 import my.nocodeplatform.model.vo.UserVO;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.beans.factory.annotation.Autowired;
-import my.nocodeplatform.entity.User;
 import my.nocodeplatform.service.UserService;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 /**

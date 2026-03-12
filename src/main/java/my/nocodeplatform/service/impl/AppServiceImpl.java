@@ -2,6 +2,7 @@ package my.nocodeplatform.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.paginate.Page;
@@ -29,6 +30,7 @@ import my.nocodeplatform.model.vo.AppVO;
 import my.nocodeplatform.model.vo.UserVO;
 import my.nocodeplatform.service.AppService;
 import my.nocodeplatform.service.UserService;
+import my.nocodeplatform.utils.MinioFileUploadUtil;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -58,6 +60,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private VueProjectBuilder vueProjectBuilder;
     @Resource
     private AiCodeGenTypeRoutingServiceFactory  aiCodeGenTypeRoutingServiceFactory;
+    @Resource
+    private MinioFileUploadUtil minioFileUploadUtil;
 
     @Override
     public QueryWrapper getQueryWrapper(AppQueryRequest appQueryRequest) {
@@ -280,17 +284,40 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     @Override
-    public void saveCover(Long appId,String deployUrl) {
+    public void saveCover(Long appId, String deployUrl) {
         // 使用虚拟线程异步执行
         Thread.startVirtualThread(() -> {
             try {
                 Thread.sleep(3000);
                 // 调用截图服务生成截图
                 String screenshotUrl = WebScreenshotUtils.saveWebPageScreenshot(deployUrl);
+                if (StrUtil.isBlank(screenshotUrl)) {
+                    log.warn("截图生成失败，appId={}", appId);
+                    return;
+                }
+                File screenshotFile = new File(AppConstant.PIC_ROOT_DIR + screenshotUrl);
+                if (!screenshotFile.exists() || screenshotFile.isDirectory()) {
+                    log.warn("截图文件不存在，appId={}, path={}", appId, screenshotFile.getAbsolutePath());
+                    return;
+                }
+                String ext = FileUtil.extName(screenshotFile);
+                if (StrUtil.isBlank(ext)) {
+                    ext = "jpg";
+                }
+                String objectName = String.format("app/cover/%d/%s.%s",
+                        appId,
+                        UUID.randomUUID().toString().replace("-", ""),
+                        ext);
+                String coverUrl = minioFileUploadUtil.uploadFile(screenshotFile, objectName);
+                // 清理本地截图
+                File parentDir = screenshotFile.getParentFile();
+                if (parentDir != null) {
+                    FileUtil.del(parentDir);
+                }
                 // 更新应用封面字段
                 App updateApp = new App();
                 updateApp.setId(appId);
-                updateApp.setCover(screenshotUrl);
+                updateApp.setCover(coverUrl);
                 boolean updated = this.updateById(updateApp);
                 ThrowUtils.throwIf(!updated, ErrorCode.OPERATION_ERROR, "更新应用封面字段失败");
             } catch (InterruptedException e) {
@@ -318,11 +345,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         userMessage.setMessageType(my.nocodeplatform.model.enums.ChatHistoryMessageTypeEnum.USER.getValue());
         userMessage.setMessage(message);
         chatHistoryService.save(userMessage);
-
+        String codeGenType = app.getCodeGenType();
         // 5. 执行工作流
         CodeGenConcurrentWorkflow workflow = new CodeGenConcurrentWorkflow();
         StringBuilder aiMessageBuilder = new StringBuilder();
-        return workflow.executeWorkflowWithFlux(appId, message)
+        return workflow.executeWorkflowWithFlux(appId, codeGenType, message)
                 .doOnNext(chunk -> aiMessageBuilder.append(chunk).append("\n"))
                 .doOnComplete(() -> {
                     my.nocodeplatform.entity.ChatHistory aiMessage = new my.nocodeplatform.entity.ChatHistory();

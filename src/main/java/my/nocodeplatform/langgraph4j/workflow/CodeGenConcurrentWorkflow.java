@@ -66,7 +66,11 @@ public class CodeGenConcurrentWorkflow {
                     .addNode("image_aggregator", ImageAggregatorNode.create())
 
                     // 添加边
-                    .addEdge(START, "image_plan")
+//                    .addEdge(START, "image_plan")
+                    //如果为第一次对话，走正常流程。第二次及以后，直接从代码生成(code_generator)开始
+                    .addConditionalEdges(START,edge_async(this::isFirstChat),
+                            Map.of("first","image_plan",
+                                    "not_first","code_generator"))
 
                     // 并发分支：从计划节点分发到各个收集节点
                     .addEdge("image_plan", "content_image_collector")
@@ -106,26 +110,10 @@ public class CodeGenConcurrentWorkflow {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "工作流创建失败");
         }
     }
-
-
-
-    /**
-     * 格式化 SSE 事件的辅助方法
-     */
-    private String formatSseEvent(String eventType, Object data) {
-        try {
-            String jsonData = JSONUtil.toJsonStr(data);
-            return "event: " + eventType + "\ndata: " + jsonData + "\n\n";
-        } catch (Exception e) {
-            log.error("格式化 SSE 事件失败: {}", e.getMessage(), e);
-            return "event: error\ndata: {\"error\":\"格式化失败\"}\n\n";
-        }
-    }
-
     /**
      * 执行工作流（Flux 流式输出版本，带进度反馈）
      */
-    public Flux<String> executeWorkflowWithFlux(Long appId, String originalPrompt) {
+    public Flux<String> executeWorkflowWithFlux(Long appId, String codeGenType,String originalPrompt) {
         return Flux.create(sink -> {
             Thread.startVirtualThread(() -> {
                 WorkflowProgressBroadcaster broadcaster = null;
@@ -139,11 +127,25 @@ public class CodeGenConcurrentWorkflow {
                     broadcaster.registerSink(appId, sink);
 
                     CompiledGraph<MessagesState<String>> workflow = createWorkflow();
-                    WorkflowContext initialContext = WorkflowContext.builder()
-                            .appId(appId)
-                            .originalPrompt(originalPrompt)
-                            .currentStep("初始化")
-                            .build();
+                    WorkflowContext initialContext = null;
+                    //如果存在codeGenType，说明为后续对话，跳过图片搜集，直接生成代码
+                    if(codeGenType!=null){
+                        initialContext = WorkflowContext.builder()
+                                .appId(appId)
+                                .generationType(CodeGenTypeEnum.VUE_PROJECT.getValue().equals(codeGenType) ?CodeGenTypeEnum.VUE_PROJECT
+                                        :CodeGenTypeEnum.MULTI_FILE.getValue().equals(codeGenType)?CodeGenTypeEnum.MULTI_FILE
+                                         :CodeGenTypeEnum.HTML)
+                                .originalPrompt(originalPrompt)
+                                .currentStep("初始化")
+                                .build();
+                    }else{
+                        initialContext = WorkflowContext.builder()
+                                .appId(appId)
+                                .originalPrompt(originalPrompt)
+                                .currentStep("初始化")
+                                .build();
+                    }
+
 
                     // 发送工作流开始消息
                     broadcaster.sendWorkflowStart(appId, originalPrompt);
@@ -198,6 +200,32 @@ public class CodeGenConcurrentWorkflow {
             });
         });
     }
+
+    private String isFirstChat(MessagesState<String> stringMessagesState) {
+        WorkflowContext context = WorkflowContext.getContext(stringMessagesState);
+        if(context.getGenerationType()!=null){
+            log.info("本次为后续对话，跳过图片搜集、提示词增强，从代码生成开始");
+            return "not_first";
+        }else{
+            log.info("本次为首次对话，正常工作流程");
+            return "first";
+        }
+    }
+
+
+    /**
+     * 格式化 SSE 事件的辅助方法
+     */
+    private String formatSseEvent(String eventType, Object data) {
+        try {
+            String jsonData = JSONUtil.toJsonStr(data);
+            return "event: " + eventType + "\ndata: " + jsonData + "\n\n";
+        } catch (Exception e) {
+            log.error("格式化 SSE 事件失败: {}", e.getMessage(), e);
+            return "event: error\ndata: {\"error\":\"格式化失败\"}\n\n";
+        }
+    }
+
 
 
     private String routeBuildOrSkip(MessagesState<String> state) {

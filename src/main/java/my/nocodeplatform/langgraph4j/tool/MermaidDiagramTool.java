@@ -2,7 +2,6 @@ package my.nocodeplatform.langgraph4j.tool;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.lang.UUID;
-import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.RuntimeUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.system.SystemUtil;
@@ -10,11 +9,11 @@ import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import my.nocodeplatform.ai.utils.WebScreenshotUtils;
 import my.nocodeplatform.exception.BusinessException;
 import my.nocodeplatform.exception.ErrorCode;
 import my.nocodeplatform.langgraph4j.state.ImageCategoryEnum;
 import my.nocodeplatform.langgraph4j.state.ImageResource;
+import my.nocodeplatform.utils.MinioFileUploadUtil;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -26,6 +25,8 @@ import java.util.List;
 @Component
 public class MermaidDiagramTool {
 
+    @Resource
+    private MinioFileUploadUtil minioFileUploadUtil;
 
     @Tool("将 Mermaid 代码转换为架构图图片，用于展示系统结构和技术关系")
     public List<ImageResource> generateMermaidDiagram(@P("Mermaid 图表代码") String mermaidCode,
@@ -34,26 +35,18 @@ public class MermaidDiagramTool {
             return new ArrayList<>();
         }
         try {
-            String IMAGE_SUFFIX = ".svg";
-            String path = System.getProperty("user.dir") + File.separator + "tmp"
-                    + File.separator +"MermaidDiagram"
-                    +File.separator+ UUID.randomUUID().toString().substring(0, 8)
-                    +File.separator + RandomUtil.randomNumbers(5) + IMAGE_SUFFIX;
             // 转换为SVG图片
             File diagramFile = convertMermaidToSvg(mermaidCode);
-            try {
-                FileUtil.writeBytes(FileUtil.readBytes(diagramFile), path);
-            } catch (Exception e) {
-                log.error("保存图片失败: {}", path, e);
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "保存图片失败");
-            }
+            String objectName = String.format("diagram/mermaid/%s.svg",
+                    UUID.randomUUID().toString().replace("-", ""));
+            String imageUrl = minioFileUploadUtil.uploadFile(diagramFile, objectName, "image/svg+xml");
             // 清理临时文件
             FileUtil.del(diagramFile);
-            if (StrUtil.isNotBlank(path)) {
+            if (StrUtil.isNotBlank(imageUrl)) {
                 return Collections.singletonList(ImageResource.builder()
                         .category(ImageCategoryEnum.ARCHITECTURE)
                         .description(description)
-                        .url(path)
+                        .url(imageUrl)
                         .build());
             }
         } catch (Exception e) {

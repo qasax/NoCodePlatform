@@ -2,6 +2,7 @@ package my.nocodeplatform.aop;
 
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import my.nocodeplatform.annotation.AuthCheck;
 import my.nocodeplatform.entity.User;
 import my.nocodeplatform.exception.BusinessException;
 import my.nocodeplatform.exception.ErrorCode;
@@ -30,7 +31,7 @@ public class AuthInterceptor {
      * @param authCheck 权限校验注解
      */
     @Around("@annotation(authCheck)")
-    public Object doInterceptor(ProceedingJoinPoint joinPoint, annotation.AuthCheck authCheck) throws Throwable {
+    public Object doInterceptor(ProceedingJoinPoint joinPoint, AuthCheck authCheck) throws Throwable {
         String mustRole = authCheck.mustRole();
         RequestAttributes requestAttributes = RequestContextHolder.currentRequestAttributes();
         HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();

@@ -1,6 +1,7 @@
 package my.nocodeplatform.ai.tool;
 
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
@@ -31,8 +32,7 @@ import java.util.stream.Collectors;
 public class FileWriteTool  extends BaseTool{
 
 
-    public String writeFiles(@P("文件列表 JSON，每个文件包含 path 和 content") String filesJson,
-                                   @ToolMemoryId Long appId) {
+    public String writeFiles(@P("文件列表 JSON，每个文件包含 path 和 content") String filesJson,@P("应用的appId")String appId){
         List<String> results = new ArrayList<>();
         try {
             if (StrUtil.isEmpty(filesJson)) {
@@ -65,7 +65,7 @@ public class FileWriteTool  extends BaseTool{
                     results.add("跳过无效文件条目: " + file);
                     continue;
                 }
-                results.add(writeFile(relativeFilePath, content, appId));
+                results.add(writeFile(relativeFilePath, content,appId));
             }
 
         } catch (Exception e) {
@@ -77,7 +77,7 @@ public class FileWriteTool  extends BaseTool{
     }
 
     @Tool("写入文件到指定目录。")
-    public String writeFile(@P("文件的相对路径") String relativeFilePath, @P("要写入文件的内容") String content, @ToolMemoryId Long appId) {
+    public String writeFile(@P("文件的相对路径") String relativeFilePath, @P("要写入文件的内容") String content, @P("应用的appId")String appId) {
         try {
             Path path = Paths.get(relativeFilePath);
             if (!path.isAbsolute()) {
@@ -97,9 +97,9 @@ public class FileWriteTool  extends BaseTool{
                     StandardOpenOption.TRUNCATE_EXISTING);
             log.info("成功写入文件: {}", path.toAbsolutePath());
             // 注意要返回相对路径，不能让 AI 把文件绝对路径返回给用户
-            return "文件写入成功: " + relativeFilePath;
+            return "应用的appId:"+appId + "文件写入成功: " + relativeFilePath;
         } catch (IOException e) {
-            String errorMessage = "文件写入失败: " + relativeFilePath + ", 错误: " + e.getMessage();
+            String errorMessage = "应用的appId:"+appId + "文件写入失败: " + relativeFilePath + ", 错误: " + e.getMessage();
             log.error(errorMessage, e);
             return errorMessage;
         }

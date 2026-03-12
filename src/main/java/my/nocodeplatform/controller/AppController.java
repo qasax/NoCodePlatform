@@ -1,6 +1,5 @@
 package my.nocodeplatform.controller;
 
-import annotation.AuthCheck;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
@@ -10,6 +9,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import my.nocodeplatform.annotation.AuthCheck;
 import my.nocodeplatform.common.BaseResponse;
 import my.nocodeplatform.common.DeleteRequest;
 import my.nocodeplatform.common.ResultUtils;

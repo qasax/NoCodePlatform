@@ -4,6 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import my.nocodeplatform.ai.service.AiCodeGeneratorFacade;
 import my.nocodeplatform.ai.model.enums.CodeGenTypeEnum;
 import my.nocodeplatform.constant.AppConstant;
+import my.nocodeplatform.langgraph4j.model.BuildResult;
+import my.nocodeplatform.langgraph4j.model.BuildResult;
 import my.nocodeplatform.langgraph4j.model.QualityResult;
 import my.nocodeplatform.langgraph4j.state.WorkflowContext;
 import my.nocodeplatform.model.enums.WorkflowStageEnum;
@@ -13,6 +15,8 @@ import org.bsc.langgraph4j.prebuilt.MessagesState;
 import reactor.core.publisher.Flux;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
 
@@ -26,9 +30,11 @@ public class CodeGeneratorNode {
             // 获取进度广播器并发送阶段开始消息
             WorkflowProgressBroadcaster broadcaster = SpringContextUtil.getBean(WorkflowProgressBroadcaster.class);
             broadcaster.sendStageStart(context.getAppId(), WorkflowStageEnum.CODE_GENERATION, WorkflowStageEnum.INTELLIGENT_ROUTING.getWeight());
-            
+            String userMessage = "这是用户消息";
             // 使用增强提示词作为发给 AI 的用户消息
-            String userMessage = buildUserMessage(context);
+            if(context.getGenerationType()==null) {
+                userMessage = buildUserMessage(context);
+            }
             CodeGenTypeEnum generationType = context.getGenerationType();
             // 获取 AI 代码生成外观服务
             AiCodeGeneratorFacade codeGeneratorFacade = SpringContextUtil.getBean(AiCodeGeneratorFacade.class);
@@ -40,11 +46,25 @@ public class CodeGeneratorNode {
             int[] fileCount = {0};
             try {
                 //构建过程中出现问题
-                if(context.getBuildResult()!=null&&context.getBuildResult().getErrors()!=null) {
-                    userMessage = context.getBuildResult().getErrors()+userMessage;
+                if(context.getBuildResult()!=null&&context.getBuildResult().getIsValid().equals(false)) {
+                    if(context.getBuildResult().getErrors()!=null) {
+                        userMessage =context.getBuildResult().getErrors().stream().collect(Collectors.joining(","))+userMessage;
+                    }
+                    if (context.getBuildResult().getSuggestions()!=null) {
+                        userMessage = context.getBuildResult().getSuggestions().stream().collect(Collectors.joining(","))+userMessage;
+                    }
+                }
+                //质检中出现问题
+                if(context.getQualityResult()!=null&&context.getQualityResult().getIsValid().equals(false)) {
+                    if(context.getQualityResult().getErrors()!=null) {
+                        userMessage =context.getQualityResult().getErrors().stream().collect(Collectors.joining(","))+userMessage;
+                    }
+                    if (context.getQualityResult().getSuggestions()!=null) {
+                        userMessage = context.getQualityResult().getSuggestions().stream().collect(Collectors.joining(","))+userMessage;
+                    }
                 }
             Flux<String> codeStream = codeGeneratorFacade.generateAndSaveCodeStream(userMessage, generationType, appId);
-            
+
             // 同步等待流式输出完成，并定期发送进度更新
             codeStream.doOnNext(chunk -> {
                 // 简单估算进度（实际应该根据生成的文件数）

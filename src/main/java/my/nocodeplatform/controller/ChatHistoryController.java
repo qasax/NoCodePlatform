@@ -1,11 +1,12 @@
 package my.nocodeplatform.controller;
 
-import annotation.AuthCheck;
+
 import com.mybatisflex.core.paginate.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import my.nocodeplatform.annotation.AuthCheck;
 import my.nocodeplatform.common.BaseResponse;
 import my.nocodeplatform.common.ResultUtils;
 import my.nocodeplatform.constant.UserConstant;

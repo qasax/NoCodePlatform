@@ -41,7 +41,9 @@ public class RouterNode {
                     appService.updateById(app);
                     log.info("AI 智能路由完成，选择类型：{} ({})", generationType.getValue(), generationType.getText());
                 }else{
-                    generationType = CodeGenTypeEnum.valueOf(app.getCodeGenType());
+                    generationType = CodeGenTypeEnum.VUE_PROJECT.getValue().equals(app.getCodeGenType()) ?CodeGenTypeEnum.VUE_PROJECT
+                            :CodeGenTypeEnum.MULTI_FILE.getValue().equals(app.getCodeGenType())?CodeGenTypeEnum.MULTI_FILE
+                             :CodeGenTypeEnum.HTML;
                     log.info("AI 智能路由跳过，已有类型：{} ({})", generationType.getValue(), generationType.getText());
                 }
 
