@@ -1,6 +1,7 @@
 package my.nocodeplatform.langgraph4j.node;
 
 import lombok.extern.slf4j.Slf4j;
+import cn.hutool.core.util.StrUtil;
 import my.nocodeplatform.ai.service.AiCodeGeneratorFacade;
 import my.nocodeplatform.ai.model.enums.CodeGenTypeEnum;
 import my.nocodeplatform.constant.AppConstant;
@@ -30,10 +31,13 @@ public class CodeGeneratorNode {
             // 获取进度广播器并发送阶段开始消息
             WorkflowProgressBroadcaster broadcaster = SpringContextUtil.getBean(WorkflowProgressBroadcaster.class);
             broadcaster.sendStageStart(context.getAppId(), WorkflowStageEnum.CODE_GENERATION, WorkflowStageEnum.INTELLIGENT_ROUTING.getWeight());
-            String userMessage = "这是用户消息";
-            // 使用增强提示词作为发给 AI 的用户消息
-            if(context.getGenerationType()==null) {
-                userMessage = buildUserMessage(context);
+            String userMessage = buildUserMessage(context);
+            if (StrUtil.isBlank(userMessage)) {
+                userMessage = context.getOriginalPrompt();
+            }
+            if (StrUtil.isBlank(userMessage)) {
+                log.warn("User message is blank; using fallback prompt. appId={}", context.getAppId());
+                userMessage = "continue generating code";
             }
             CodeGenTypeEnum generationType = context.getGenerationType();
             // 获取 AI 代码生成外观服务
@@ -110,9 +114,8 @@ public class CodeGeneratorNode {
      * 构建用户消息
      */
     private static String buildUserMessage(WorkflowContext context) {
-        StringBuilder messageBuilder = new StringBuilder();
-        messageBuilder.append(context.getEnhancedPrompt());
-        return messageBuilder.toString();
+        String enhancedPrompt = context.getEnhancedPrompt();
+        return enhancedPrompt == null ? "" : enhancedPrompt;
     }
     /**
      * 构造用户消息，如果存在质检失败结果则添加错误修复信息

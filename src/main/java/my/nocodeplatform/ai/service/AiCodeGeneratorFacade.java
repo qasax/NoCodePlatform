@@ -23,8 +23,6 @@ public class AiCodeGeneratorFacade {
 
     @Resource
     private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
-    @Resource
-    private NormalAiCodeGeneratorServiceFactory normalAiCodeGeneratorServiceFactory;
 
     /**
      * 统一入口：根据类型生成并保存代码（使用 appId）
@@ -67,7 +65,6 @@ public class AiCodeGeneratorFacade {
         }
         // 根据 appId 获取对应的 AI 服务实例
         AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum);
-        NormalAiCodeGeneratorService normalAiCodeGeneratorService = normalAiCodeGeneratorServiceFactory.getNormalAiCodeGeneratorService(appId, codeGenTypeEnum);
         return switch (codeGenTypeEnum) {
             case HTML -> {
                 Flux<String> codeStream = aiCodeGeneratorService.generateHtmlCodeStream(appId,userMessage);
@@ -78,7 +75,7 @@ public class AiCodeGeneratorFacade {
                 yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE, appId);
             }
             case VUE_PROJECT -> {
-                Flux<String> codeStream = normalAiCodeGeneratorService.generateVueProjectCodeStreamNoMemory(userMessage+"应用appId:"+appId);
+                Flux<String> codeStream = aiCodeGeneratorService.generateVueProjectCodeStream(appId,userMessage);
                 yield codeStream;
 //                processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE, appId);
             }

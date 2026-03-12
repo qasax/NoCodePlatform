@@ -29,7 +29,7 @@ langchain4j:
         model-name: text-embedding-v4
       streaming-chat-model:
         api-key: sk-355fdaeddf5743078b7d4c9efde61980
-        model-name: qwen3-max-2025-09-23
+        model-name: deepseek-v3.2-exp
         parameters:
           response-format: json
           format-on: false

@@ -98,7 +98,9 @@ public class AiCodeGeneratorServiceFactory {
                 .build();
         MessageWindowChatMemory noChatMemory = MessageWindowChatMemory
                 .builder()
-                .maxMessages(1)
+                .id(appId)
+                .chatMemoryStore(redisChatMemoryStore)
+                .maxMessages(50)
                 .build();
         // 从数据库加载历史对话到记忆中
         chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 10);
@@ -108,14 +110,13 @@ public class AiCodeGeneratorServiceFactory {
             //chatMemoryProvider与chatMemory互斥
             case VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
                     .streamingChatModel(myQwenStreamingChatModel)
-                    //.chatMemoryProvider(memoryId -> chatMemory)
+                    .chatMemoryProvider(memoryId -> noChatMemory)
                     .tools(toolManager.getAllTools())
-                    .chatMemory(noChatMemory)
 //                    .maxSequentialToolsInvocations(10)
 //                    .maxSequentialToolsInvocations(10)
-/*                    .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
+                    .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                             toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()
-                    ))*/
+                    ))
                   //  .inputGuardrails(new PromptSafetyInputGuardrail())  // 添加输入护轨
                  //   .outputGuardrails(new RetryOutputGuardrail())
                     .build();

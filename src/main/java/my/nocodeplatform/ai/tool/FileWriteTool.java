@@ -31,53 +31,12 @@ import java.util.stream.Collectors;
 @Component
 public class FileWriteTool  extends BaseTool{
 
-
-    public String writeFiles(@P("文件列表 JSON，每个文件包含 path 和 content") String filesJson,@P("应用的appId")String appId){
-        List<String> results = new ArrayList<>();
-        try {
-            if (StrUtil.isEmpty(filesJson)) {
-                results.add("文件列表为空");
-                return results.stream().collect(Collectors.joining("\n"));
-            }
-
-            // 如果 JSON 被外层引号包裹，例如 "\"[...]\""，去掉首尾引号
-            if ((filesJson.startsWith("\"") && filesJson.endsWith("\""))
-                    || (filesJson.startsWith("'") && filesJson.endsWith("'"))) {
-                filesJson = filesJson.substring(1, filesJson.length() - 1)
-                        .replace("\\\"", "\"")  // 反转义双引号
-                        .replace("\\n", "");    // 去掉换行符
-            }
-
-            // 解析为原始 List<Map>
-            List<Map> rawList = JSONUtil.toList(JSONUtil.parseArray(filesJson), Map.class);
-
-            // 转为 List<Map<String,String>>
-            List<Map<String, String>> files = rawList.stream().map(m -> {
-                Map<String, String> map = new HashMap<>();
-                m.forEach((k, v) -> map.put(String.valueOf(k), String.valueOf(v)));
-                return map;
-            }).toList();
-
-            for (Map<String, String> file : files) {
-                String relativeFilePath = file.get("path");
-                String content = file.get("content");
-                if (relativeFilePath == null || content == null) {
-                    results.add("跳过无效文件条目: " + file);
-                    continue;
-                }
-                results.add(writeFile(relativeFilePath, content,appId));
-            }
-
-        } catch (Exception e) {
-            String errorMessage = "解析文件列表失败: " + e.getMessage();
-            log.error(errorMessage, e);
-            results.add(errorMessage);
-        }
-        return results.stream().collect(Collectors.joining("\n"));
-    }
-
     @Tool("写入文件到指定目录。")
-    public String writeFile(@P("文件的相对路径") String relativeFilePath, @P("要写入文件的内容") String content, @P("应用的appId")String appId) {
+    public String writeFile(
+            @P("文件的相对路径") String relativeFilePath,
+            @P("要写入文件的内容") String content,
+            @ToolMemoryId Long appId
+    ) {
         try {
             Path path = Paths.get(relativeFilePath);
             if (!path.isAbsolute()) {
@@ -97,9 +56,9 @@ public class FileWriteTool  extends BaseTool{
                     StandardOpenOption.TRUNCATE_EXISTING);
             log.info("成功写入文件: {}", path.toAbsolutePath());
             // 注意要返回相对路径，不能让 AI 把文件绝对路径返回给用户
-            return "应用的appId:"+appId + "文件写入成功: " + relativeFilePath;
+            return  "文件写入成功: " + relativeFilePath;
         } catch (IOException e) {
-            String errorMessage = "应用的appId:"+appId + "文件写入失败: " + relativeFilePath + ", 错误: " + e.getMessage();
+            String errorMessage =  "文件写入失败: " + relativeFilePath + ", 错误: " + e.getMessage();
             log.error(errorMessage, e);
             return errorMessage;
         }
