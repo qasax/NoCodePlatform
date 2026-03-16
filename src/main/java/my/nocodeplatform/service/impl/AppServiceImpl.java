@@ -244,7 +244,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 8. 更新应用的 deployKey 和部署时间
         App updateApp = new App();
         updateApp.setId(appId);
-        updateApp.setDeployKey(deployKey);
+        updateApp.setDeployKey(String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey));
         updateApp.setDeployedTime(LocalDateTime.now());
         boolean updateResult = this.updateById(updateApp);
         ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用部署信息失败");
