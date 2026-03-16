@@ -31,6 +31,7 @@ import my.nocodeplatform.model.vo.UserVO;
 import my.nocodeplatform.service.AppService;
 import my.nocodeplatform.service.UserService;
 import my.nocodeplatform.utils.MinioFileUploadUtil;
+import org.apache.commons.io.FilenameUtils;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -210,6 +211,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 没有则生成 6 位 deployKey（大小写字母 + 数字）
         if (StrUtil.isBlank(deployKey)) {
             deployKey = RandomUtil.randomString(6);
+        }else{
+            String[] parts = deployKey.split("/");
+            deployKey = parts[parts.length - 1].isEmpty() ? parts[parts.length - 2] : parts[parts.length - 1];
         }
         // 5. 获取代码生成类型，构建源目录路径
         String codeGenType = app.getCodeGenType();
