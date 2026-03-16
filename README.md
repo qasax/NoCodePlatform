@@ -1,256 +1,199 @@
-# 0代码应用生成平台
+# 🚀 NoCodePlatform: 智能化 0 代码应用生成引擎 
 
-## 简介
-本项目是一个 0 代码应用生成平台，面向非开发用户与轻量开发需求，通过填写初始需求描述自动生成应用代码，并提供应用管理、预览与部署能力。
+[![Java Version](https://img.shields.io/badge/Java-21-orange.svg)](https://www.oracle.com/java/technologies/javase/jdk21-archive-downloads.html)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.11-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## 主要能力
-- 账号注册、登录、注销与会话管理
-- 应用创建、编辑、删除、查询与精选展示
-- 基于对话的代码生成，支持流式返回
-- 智能路由选择生成类型，支持多种生成模式
-- 并发图片收集、提示词增强、质量检查与项目构建
-- 生成结果预览、部署与静态资源访问
-- 自动截图生成封面并上传到对象存储
-- 生成过程进度推送与心跳机制
+> **NoCodePlatform** 是一款基于 大语言模型 (LLM) 驱动的 0 代码应用生成平台。它能够将用户的自然语言描述（Prompt）转化为功能完备的 Web 应用，集成了业界领先的 AI 编排技术与自动化部署流程。
 
-## 架构图
+---
+
+## 📖 目录
+- [1 项目介绍](#1-项目介绍)
+- [2 功能介绍](#2-功能介绍)
+- [3 技术架构](#3-技术架构)
+- [4 工作流设计](#4-工作流设计)
+- [5 快速开始](#5-快速开始)
+- [6 项目结构](#6-项目结构)
+- [7 核心设计](#7-核心设计)
+- [8 Roadmap](#8-roadmap)
+- [9 贡献](#9-贡献)
+- [10 License](#10-license)
+
+---
+
+## 1 项目介绍
+NoCodePlatform 旨在消除技术壁垒，让非开发人员也能通过“对话即开发”的方式构建应用。系统不仅生成代码，还涵盖了从 **图片资源收集 -> 提示词增强 -> 代码生成 -> 质量检查 -> 自动化部署** 的全生命周期管理。
+
+---
+
+## 2 功能介绍
+### 🌟 核心特性
+*   **🤖 智能生成**：基于 LangChain4j 与通义千问 (DashScope) 实现流式交互生成。
+*   **🛠️ 自动化流水线**：集成 LangGraph4j 编排复杂的生成节点。
+*   **🖼️ 动态配图**：生成过程中并发收集匹配的 UI 图片资源。
+*   **📊 实时反馈**：通过 SSE 实现细粒度的生成进度推送（心跳机制防止连接超时）。
+*   **🌐 一键预览/部署**：支持静态资源托管，自动生成预览链接与封面截图。
+*   **🔐 完善权限**：基于 AOP 实现的优雅权限控制系统 (Admin/User)。
+
+---
+
+## 3 技术架构
+项目采用现代化的微服务单体架构设计，确保高性能与易维护性。
+
+### 🏗️ 系统架构图
 ```mermaid
 flowchart TB
-    A[使用者] --> B[接口服务]
+    User[使用者] --> API[API 接口服务]
 
-    B --> C[用户模块]
-    B --> D[应用模块]
-    B --> E[对话历史模块]
-    B --> F[静态资源服务]
-    B --> G[进度反馈]
+    subgraph Core[核心模块]
+        UserMod[用户鉴权模块]
+        AppMod[应用生命周期]
+        HistoryMod[对话记忆管理]
+        StaticService[静态资源服务]
+    end
 
-    D --> H[生成类型路由]
-    D --> I[代码生成外观层]
-    D --> J[工作流编排]
+    API --> Core
 
-    J --> J1[图片收集]
-    J --> J2[提示词增强]
-    J --> J3[代码生成]
-    J --> J4[质量检查]
-    J --> J5[项目构建]
+    subgraph AIEngine[AI 生成引擎]
+        Router[生成类型路由]
+        Workflow[LangGraph4j 工作流]
+        CodeParser[代码解析与保存]
+    end
 
-    J1 --> J1a[内容配图]
-    J1 --> J1b[插画]
-    J1 --> J1c[示意图]
-    J1 --> J1d[标志图]
+    AppMod --> AIEngine
 
-    I --> K[代码解析与保存]
-    K --> L[生成目录]
+    subgraph Nodes[工作流节点]
+        J1[图片收集]
+        J2[Prompt 增强]
+        J3[代码生成]
+        J4[质量检查]
+        J5[项目构建]
+    end
 
-    D --> M[预览与部署]
-    M --> N[静态目录]
-    M --> O[封面截图]
-    O --> P[对象存储]
+    Workflow --> Nodes
 
-    B --> Q[关系数据库]
-    B --> R[会话与记忆存储]
+    subgraph Infra[基础设施]
+        DB[(MySQL)]
+        Cache[(Redis - 会话与记忆)]
+        OSS[(MinIO - 对象存储)]
+        Browser[Selenium - 封面截图]
+    end
 
-    Q[关系数据库]:::store
-    R[缓存与会话存储]:::store
-    P[对象存储]:::store
-    L[本地文件系统]:::store
-    N[本地文件系统]:::store
-
-    classDef store fill:#f3f4f6,stroke:#9ca3af,color:#111827;
+    Core & AIEngine --> Infra
 ```
 
-## 关键流程
-### 应用创建与代码生成
+---
+
+## 4 工作流设计
+生成流程由 **LangGraph4j** 强力驱动，确保 LLM 的输出遵循严格的项目规范。
+
 ```mermaid
 flowchart LR
-    A[创建应用] --> B[提交需求描述]
-    B --> C{是否首次对话}
-    C -->|是| D[图片收集]
-    D --> E[提示词增强]
-    E --> F[生成类型路由]
-    C -->|否| F
-    F --> G[代码生成]
-    G --> H[质量检查]
-    H --> I{是否需要构建}
-    I -->|需要| J[项目构建]
-    I -->|不需要| K[生成完成]
-    J --> K
+    Start([开始]) --> Match{初次对话?}
+    Match -- 是 --> Pic[图片/插画收集]
+    Match -- 否 --> Route[生成策略优化]
+    
+    Pic --> Augment[提示词工程增强]
+    Augment --> Route
+    
+    Route --> Gen[代码流式生成]
+    Gen --> QA[自动化质量检查]
+    
+    QA --> Build{触发构建?}
+    Build -- 需要 --> Project[前端项目打包]
+    Build -- 忽略 --> End([生成完成])
+    Project --> End
 ```
 
-### 预览与部署
-```mermaid
-flowchart LR
-    A[生成完成] --> B[预览]
-    A --> C[部署]
-    C --> D[复制到部署目录]
-    C --> E[生成访问地址]
-    C --> F[网页截图]
-    F --> G[上传对象存储]
-```
+---
 
-## 功能模块说明
-### 用户模块
-- 用户注册、登录与注销
-- 登录态存储在会话中并持久化到缓存
-- 管理员可进行用户增删改查
+## 5 快速开始
+### 📋 环境准备
+*   **Java**: 21+
+*   **Database**: MySQL 8.0+, Redis 7.0+
+*   **Storage**: MinIO (或兼容 S3 的存储)
+*   **Tools**: Node.js/npm (构建前端), Maven 3.9+
 
-### 应用模块
-- 应用创建、编辑、删除、查询
-- 精选应用分页查询
-- 应用预览与部署
-- 自动截图生成封面并更新
+### 🚀 启动指南
+1.  **克隆项目**
+    ```bash
+    git clone https://github.com/your-username/NoCodePlatform.git
+    cd NoCodePlatform
+    ```
 
-### 对话历史模块
-- 记录用户与模型的对话历史
-- 支持按应用分页查询
-- 历史记录可加载到对话记忆中
+2.  **配置环境**
+    在 `src/main/resources/application-local.yml` 中配置以下信息：
+    *   MySQL/Redis 连接信息
+    *   MinIO `endpoint`, `ak`, `sk`
+    *   DashScope API Key (`langchain4j.community.dashscope.chat-model.api-key`)
 
-### 生成与工作流模块
-- 生成类型路由与策略选择
-- 多模式生成与保存
-- 并发图片收集、提示词增强、质量检查与构建
-- 支持流式输出与进度推送
+3.  **运行项目**
+    ```bash
+    mvn spring-boot:run
+    ```
 
-### 静态资源服务
-- 预览目录与部署目录静态资源访问
-- 图片封面与生成资源访问
+4.  **访问接口**
+    *   API 文档 (Knife4j): `http://localhost:8790/api/doc.html`
+    *   默认服务端口: `8790`
 
-## 目录结构
-- `src/main/java/my/nocodeplatform/controller` 接口层
-- `src/main/java/my/nocodeplatform/service` 业务层
-- `src/main/java/my/nocodeplatform/entity` 实体对象
-- `src/main/java/my/nocodeplatform/model` 传输对象与枚举
-- `src/main/java/my/nocodeplatform/ai` 生成相关能力
-- `src/main/java/my/nocodeplatform/langgraph4j` 工作流与节点
-- `src/main/java/my/nocodeplatform/progress` 进度推送
-- `src/main/resources/prompt` 生成提示词模板
-- `src/main/resources/mapper` 映射文件
-- `docs` 进度与前端对接文档
+---
 
-## 技术与依赖概览
-- `Java 21`
-- `Spring Boot`
-- `MyBatis-Flex`
-- `MySQL`
-- `Redis`
-- `LangChain4j`
-- `LangGraph4j`
-- `MinIO`
-- `Selenium`
-- `HikariCP`
-- `Caffeine`
-
-## 配置说明
-### 基础配置
-- 服务端口与上下文路径位于 `src/main/resources/application.yml`
-- 当前默认启用本地配置文件 `application-local.yml`
-
-### 本地配置要点
-以下配置涉及外部服务与密钥，需要按实际环境替换：
-```yaml
-spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/no_code_platform
-    username: 你的账号
-    password: 你的密码
-spring:
-  data:
-    redis:
-      host: localhost
-      port: 6379
-langchain4j:
-  community:
-    dashscope:
-      chat-model:
-        api-key: 你的密钥
-minio:
-  endpoint: http://localhost:9000
-  access-key: 你的密钥
-  secret-key: 你的密钥
-  bucket: nocodeplatform
-```
-
-### 重要安全提示
-- 不要在公共仓库提交真实密钥
-- 推荐使用环境变量或私有配置文件覆盖
-- 生产环境建议启用独立的对象存储与缓存实例
-
-## 快速开始
-### 环境准备
-- `JDK 21`
-- `Maven`
-- `MySQL`
-- `Redis`
-- `MinIO`
-- `Node.js` 与 `npm`（用于项目构建）
-- 本地浏览器驱动环境（用于网页截图）
-
-### 数据库准备
-1. 创建数据库 `no_code_platform`
-1. 根据实体类创建表结构，字段参考如下文件
-`src/main/java/my/nocodeplatform/entity/User.java`
-`src/main/java/my/nocodeplatform/entity/App.java`
-`src/main/java/my/nocodeplatform/entity/ChatHistory.java`
-
-### 启动服务
-```bash
-mvn spring-boot:run
-```
-
-### 访问地址
-- 接口根路径：`http://localhost:8790/api`
-- 部署访问基地址：`http://localhost:8005`
-
-## 接口概览
-### 用户相关
-- `POST /user/register` 用户注册
-- `POST /user/login` 用户登录
-- `GET /user/get/login` 获取当前登录用户
-- `POST /user/logout` 用户注销
-- `POST /user/add` 管理员创建用户
-- `GET /user/get` 管理员获取用户
-- `POST /user/delete` 管理员删除用户
-- `POST /user/update` 管理员更新用户
-- `POST /user/list/page/vo` 管理员分页查询
-
-### 应用相关
-- `POST /app/add` 创建应用
-- `POST /app/edit` 编辑应用
-- `POST /app/delete` 删除应用
-- `GET /app/get/vo` 获取应用详情
-- `GET /app/get` 管理员获取应用详情
-- `POST /app/list/page` 管理员分页查询
-- `POST /app/list/page/vo` 精选应用列表
-- `POST /app/my/list/page/vo` 我的应用列表
-- `GET /app/chat/gen/code` 生成代码（流式）
-- `POST /app/deploy` 部署应用
-- `GET /app/preview/{appId}` 预览应用
-
-### 对话历史
-- `POST /chat_history/list/page` 管理员分页查询
-- `POST /chat_history/list/page/vo` 应用对话历史视图
-
-### 静态资源
-- `GET /static/{deployKey}/` 访问部署资源
-- `GET /static/pic/**` 访问图片资源
-
-## 生成进度反馈
-生成流程会通过流式响应推送进度数据，核心字段包括阶段、状态、百分比、提示信息与详细内容。详细规则见：
-- `docs/ProgressFeedbackSpec.md`
-- `docs/ProgressFeedbackSummary.md`
-- `docs/FrontendUsageExample.md`
-
-## 运行时目录说明
+## 6 项目结构
 ```text
-tmp/code_output   生成结果目录
-tmp/code_deploy   部署目录
-tmp/screenshots   截图临时目录
+NoCodePlatform
+├── src/main/java/my/nocodeplatform
+│   ├── ai/               # AI 核心逻辑与提示词处理
+│   ├── controller/       # RESTful 接口层
+│   ├── entity/           # 数据库映射对象 (MyBatis-Flex)
+│   ├── langgraph4j/      # LangGraph4j 工作流节点与编排
+│   ├── model/            # DTO、VO 与枚举定义
+│   ├── progress/         # 进度推送进度条心跳机制
+│   └── service/          # 核心业务逻辑
+├── src/main/resources
+│   ├── prompt/           # 精心调优的 AI 提示词模板
+│   └── application.yml   # 系统配置文件
+└── docs/                 # 技术对接文档与规范说明
 ```
 
-## 常见问题
-- 如果部署后访问为空，请确认构建结果已产出并复制到部署目录
-- 如果截图失败，请检查本地浏览器驱动环境是否可用
-- 如果生成类型不符合预期，可通过对话继续优化需求描述
+---
 
-## 参考脚本
-- `test_app_endpoints.ps1` 基本接口联调脚本
+## 7 核心设计
+### 🧱 统一鉴权 (AuthCheck)
+利用 Spring AOP 结合自定义注解，实现零侵入的权限校验：
+```java
+@AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+@PostMapping("/delete")
+public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest) { ... }
+```
+
+### ⚡ 流式进度反馈
+基于 SSE (Server-Sent Events) 的进度推送系统，支持分阶段状态实时更新。
+
+---
+
+## 8 Roadmap
+- [x] 基于 LangGraph4j 的工作流引擎
+- [x] 多模式代码生成与质量检查
+- [x] 自动化部署与封面截图
+- [ ] 更多 UI 组件库适配 (Tailwind/Element Plus)
+- [ ] 可视化工作流编辑界面
+- [ ] 移动端 H5 混合生成模式
+
+---
+
+## 9 贡献
+欢迎提交 Pull Request 或 Issue！
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启 Pull Request
+
+---
+
+## 10 License
+本项目采用 [MIT License](LICENSE) 开源。
+
+---
+<p align="center">Made with ❤️ for the Future of No-Code Development</p>
